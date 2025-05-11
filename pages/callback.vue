@@ -11,9 +11,19 @@ import { onMounted } from 'vue'
 const config = useRuntimeConfig()
 
 const connectToSpotify = () => {
-  const spotifyAuthUrl = `https://accounts.spotify.com/authorize?client_id=${config.public.spotifyClientId}&response_type=code&redirect_uri=${encodeURIComponent(config.public.spotifyRedirectUri)}&scope=user-read-email playlist-read-private`;
+  const scopes = [
+    "user-read-email",
+    "playlist-read-private",
+    "user-read-playback-state",
+    "user-modify-playback-state",
+    "streaming"
+  ].join(" ");
+
+  const spotifyAuthUrl = `https://accounts.spotify.com/authorize?client_id=${config.public.spotifyClientId}&response_type=code&redirect_uri=${encodeURIComponent(config.public.spotifyRedirectUri)}&scope=${encodeURIComponent(scopes)}`;
+
   window.location.href = spotifyAuthUrl;
 }
+
 
 onMounted(async () => {
   const urlParams = new URLSearchParams(window.location.search);

@@ -5,23 +5,51 @@ import { ref, onMounted } from 'vue';
 const route = useRoute();
 const playlistId = route.params.id;
 const playlist = ref(null);
+const player = ref(null);
+
 const token = localStorage.getItem('spotify_access_token');
+
+async function waitForSpotifySDK() {
+  return new Promise((resolve) => {
+    if (window.Spotify) resolve();
+    else window.onSpotifyWebPlaybackSDKReady = resolve;
+  });
+}
+
+async function initializePlayer() {
+  await waitForSpotifySDK();
+
+  const spotifyPlayer = new window.Spotify.Player({
+    name: 'Nuxt Player',
+    getOAuthToken: cb => cb(token),
+    volume: 0.5
+  });
+
+  spotifyPlayer.addListener('ready', ({ device_id }) => {
+    console.log('Ready with Device ID', device_id);
+    localStorage.setItem('spotify_device_id', device_id);
+  });
+
+  spotifyPlayer.addListener('initialization_error', e => console.error('Init Error', e.message));
+  spotifyPlayer.addListener('authentication_error', e => console.error('Auth Error', e.message));
+  spotifyPlayer.addListener('account_error', e => console.error('Account Error', e.message));
+  spotifyPlayer.addListener('playback_error', e => console.error('Playback Error', e.message));
+
+  await spotifyPlayer.connect();
+  player.value = spotifyPlayer;
+}
 
 async function getPlaylist() {
   const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
   playlist.value = await res.json();
 }
 
 async function playTrack(uri) {
-  const token = localStorage.getItem('spotify_access_token');
   const deviceId = localStorage.getItem('spotify_device_id');
-
   if (!deviceId) {
-    alert('Player not ready yet. Please wait...');
+    alert('Spotify Web Player not ready yet!');
     return;
   }
 
@@ -29,109 +57,122 @@ async function playTrack(uri) {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      uris: [uri]
-    }),
+    body: JSON.stringify({ uris: [uri] })
+  });
+}
+async function pausePlayback() {
+  const deviceId = localStorage.getItem('spotify_device_id');
+  if (!deviceId) {
+    alert('Spotify Web Player not ready yet!');
+    return;
+  }
+
+  await fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    }
   });
 }
 
-onMounted(getPlaylist);
+onMounted(async () => {
+  await initializePlayer();
+  await getPlaylist();
+});
 </script>
-<template>
-  <div v-if="playlist">
-    <h1>{{ playlist.name }}</h1>
-    <p>{{ playlist.description }}</p>
 
-    <div v-for="item in playlist.tracks.items" :key="item.track.id" class="track">
-      <img :src="item.track.album.images[0]?.url" width="60" />
-      <span>{{ item.track.name }} - {{ item.track.artists.map(a => a.name).join(', ') }}</span>
-      <button @click="playTrack(item.track.uri)">▶️ Play</button>
+<template>
+  <div v-if="playlist" class="playlist-container">
+    <h1 class="playlist-title">{{ playlist.name }}</h1>
+    <p class="playlist-description">{{ playlist.description }}</p>
+
+    <button class="stop-btn" @click="pausePlayback">⏹ Stop</button>
+
+    <div class="track" v-for="item in playlist.tracks.items" :key="item.track.id">
+      <img :src="item.track.album.images[0]?.url" class="album-art" />
+      <div class="track-info">
+        <span class="track-title">{{ item.track.name }}</span>
+        <span class="track-artist">{{ item.track.artists.map(a => a.name).join(', ') }}</span>
+      </div>
+      <button class="play-btn" @click="playTrack(item.track.uri)">▶️ Play</button>
     </div>
   </div>
 </template>
 <style scoped>
-/* General container styles */
-div {
-  background-color: #121212; /* Spotify dark background */
-  color: #fff; /* White text */
-  padding: 20px;
-  min-height: 100vh;
-  font-family: Arial, sans-serif;
+.playlist-container {
+  background: #121212;
+  color: white;
+  padding: 2rem;
+  font-family: 'Helvetica Neue', sans-serif;
 }
 
-h1 {
+.playlist-title {
   font-size: 2rem;
-  margin-bottom: 10px;
-  font-weight: bold;
+  margin-bottom: 0.5rem;
 }
 
-p {
-  font-size: 1.2rem;
-  color: #b3b3b3; /* Lighter text for description */
-  margin-bottom: 20px;
+.playlist-description {
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  color: #b3b3b3;
 }
 
-/* Track list styles */
 .track {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #181818; /* Slightly lighter than the page background */
-  border-radius: 5px;
-  margin: 10px 0;
-  padding: 15px;
-  transition: background-color 0.3s ease;
+  background: #181818;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  transition: background 0.2s ease;
 }
 
 .track:hover {
-  background-color: #282828; /* Lighter shade on hover */
+  background: #282828;
 }
 
-/* Track image */
-.track img {
+.album-art {
+  width: 60px;
+  height: 60px;
   border-radius: 5px;
-  margin-right: 15px;
-  transition: transform 0.2s ease;
+  margin-right: 1rem;
 }
 
-.track img:hover {
-  transform: scale(1.1); /* Zoom effect on hover */
+.track-info {
+  flex: 1;
 }
 
-/* Track name and artist text */
-.track span {
-  flex-grow: 1;
-  font-size: 1.1rem;
-  color: #b3b3b3; /* Lighter color for track name and artist */
+.track-title {
+  font-weight: bold;
+  display: block;
 }
 
-/* Play button styles */
-.track button {
-  background-color: #1db954; /* Spotify green */
+.track-artist {
+  color: #b3b3b3;
+  font-size: 0.9rem;
+}
+
+.play-btn,
+.stop-btn {
+  background: #1db954;
   color: white;
   border: none;
-  border-radius: 25px;
-  padding: 10px 20px;
-  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background 0.3s ease;
 }
 
-.track button:hover {
-  background-color: #1ed760; /* Darker green on hover */
+.play-btn:hover,
+.stop-btn:hover {
+  background: #1ed760;
 }
 
-/* For larger screens, make it responsive */
-@media (max-width: 768px) {
-  .track {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .track img {
-    margin-bottom: 10px;
-  }
+.stop-btn {
+  margin-bottom: 2rem;
 }
 </style>
+

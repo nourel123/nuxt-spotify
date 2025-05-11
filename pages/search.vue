@@ -28,90 +28,86 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="container">
-      <h1 class="title">Search Results for "{{ $route.query.q }}"</h1>
-  
-      <div v-if="results.length" class="track-row">
-        <div v-for="track in results" :key="track.id" class="track-card">
-          <img :src="track.album.images[0]?.url" alt="cover" class="track-image" />
-          <div class="track-info">
-            <h2 class="track-name">{{ track.name }}</h2>
-            <p class="track-artists">{{ track.artists.map(a => a.name).join(', ') }}</p>
-          </div>
+  <div class="container">
+    <h1 class="title">Search Results for "{{ $route.query.q }}"</h1>
+    <div v-if="results.length" class="track-row">
+      <NuxtLink
+        v-for="track in results"
+        :key="track.id"
+        :to="`/playlist/${track.id}`"
+        class="track-card"
+      >
+        <img :src="track.album.images[0]?.url" alt="cover" class="track-image" />
+        <div class="track-info">
+          <h2 class="track-name">{{ track.name }}</h2>
+          <p class="track-artists">{{ track.artists.map(a => a.name).join(', ') }}</p>
         </div>
-      </div>
-  
-      <p v-else class="loading">No results found.</p>
+      </NuxtLink>
     </div>
-  </template>
+    <p v-else class="loading">No results found.</p>
+  </div>
+</template>
+
 <style scoped>
 .container {
-  background-color: #0f0f0f;
-  min-height: 100vh;
-  padding: 40px;
+  padding: 2rem;
+  background: #121212;
   color: #fff;
-  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  font-family: 'Helvetica Neue', sans-serif;
 }
 
 .title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 30px;
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 .track-row {
   display: flex;
-  gap: 24px;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
 }
 
 .track-card {
-  background-color: #1a1a1a;
-  border-radius: 16px;
-  width: 240px;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: block;
+  width: 200px;
+  background-color: #1f1f1f;
+  padding: 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, background-color 0.2s;
 }
 
 .track-card:hover {
+  background-color: #282828;
   transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
 }
 
 .track-image {
   width: 100%;
-  height: 240px;
-  object-fit: cover;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-radius: 5px;
+  margin-bottom: 0.5rem;
 }
 
 .track-info {
-  padding: 16px;
+  text-align: center;
 }
 
 .track-name {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
 }
 
 .track-artists {
-  font-size: 14px;
-  color: #ccc;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  color: #b3b3b3;
 }
 
 .loading {
-  color: #aaa;
-  margin-top: 20px;
+  text-align: center;
+  font-size: 1.2rem;
+  color: #b3b3b3;
 }
 </style>
-  

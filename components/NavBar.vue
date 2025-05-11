@@ -26,7 +26,7 @@ function handleSearch() {
       />
     </div>
     <div class="links">
-      <NuxtLink to="/">Home</NuxtLink>
+      <NuxtLink to="/home">Home</NuxtLink>
       <NuxtLink to="/profile">Profile</NuxtLink>
     </div>
   </nav>

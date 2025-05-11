@@ -65,7 +65,7 @@ onMounted(async () => {
 });
 
 function goToPlaylist(id) {
-  router.push(`/playList/${id}`);
+  router.push(`/playlist/${id}`);
 }
 </script>
 <style scoped>
